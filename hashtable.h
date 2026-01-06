@@ -50,7 +50,6 @@ void *ht_get_el(Hash_Table *table, Hash_Table_El *element);
 #endif  // HASHTABLE_H
 
 
-#define HASHTABLE_IMPLEMENTATION
 #ifdef HASHTABLE_IMPLEMENTATION
 
 // Private functions forward declarations
