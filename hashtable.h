@@ -47,6 +47,8 @@ int ht_find_el(Hash_Table *table, Hash_Table_El *element);
 void *ht_get(Hash_Table *table, const void *key);
 void *ht_get_el(Hash_Table *table, Hash_Table_El *element);
 
+void ht_print(Hash_Table *table, void(*key_print)(void *), void(*val_print)(void *));
+
 #endif  // HASHTABLE_H
 
 
@@ -82,26 +84,32 @@ int ht_alloc(
   if (hash != NULL) table->hash = hash;
   if (compare != NULL) table->compare = compare;
 
-  table->elements = calloc(table->max_capacity, sizeof(Hash_Table_El *));
-  table->capacity = calloc(table->max_capacity, sizeof(size_t));
-  table->size = calloc(table->max_capacity, sizeof(size_t));
+  table->elements = malloc(sizeof(size_t) * table->max_capacity);
+  table->capacity = malloc(sizeof(size_t) * table->max_capacity);
+  table->size = malloc(sizeof(size_t) * table->max_capacity);
   if (table->elements == NULL || table->capacity == NULL || table->size == NULL) {
     printf("[ERROR]: "
-           "Error in ht_alloc: "
-           "Could not allocate elements or capacity or size\n"
+      "Error in ht_alloc: "
+      "Could not allocate elements or capacity or size\n"
     );
     return -1;
   }
 
+  memset(table->elements, 0, sizeof(size_t) * table->max_capacity);
+  memset(table->capacity, 0, sizeof(size_t) * table->max_capacity);
+  memset(table->size    , 0, sizeof(size_t) * table->max_capacity);
+  
   for (size_t i = 0; i < table->max_capacity; i++) {
-    table->elements[i] = calloc(1, sizeof(Hash_Table_El));
+    table->elements[i] = malloc(sizeof(Hash_Table_El));
     if (table->elements[i] == NULL) {
       printf("[ERROR]: "
-             "Error in ht_alloc: "
-             "Could not allocate elements\n"
+        "Error in ht_alloc: "
+        "Could not allocate elements\n"
       );
       return -1;
     }
+
+    memset(table->elements[i], 0, sizeof(Hash_Table_El));
 
     table->capacity[i] = 1;
     table->size[i] = 0;
@@ -163,7 +171,7 @@ int ht_insert(Hash_Table *table, const void *key, const void *value) {
 
   // Resize if needed
   if (table->size[idx] >= table->capacity[idx]) {
-    Hash_Table_El *new = calloc(table->capacity[idx] * 2, sizeof(Hash_Table_El));
+    Hash_Table_El *new = malloc(sizeof(Hash_Table_El) * (table->capacity[idx] * 2));
     if (new == NULL) {
       printf("[ERROR]: "
             "Error in ht_insert: "
@@ -171,6 +179,8 @@ int ht_insert(Hash_Table *table, const void *key, const void *value) {
       );
       return -1;
     }
+
+    memset(new, 0, sizeof(Hash_Table_El) * (table->capacity[idx] * 2));
 
     memcpy(new, table->elements[idx], table->size[idx] * sizeof(Hash_Table_El));
     free(table->elements[idx]);
@@ -208,7 +218,7 @@ int ht_insert_el(Hash_Table *table, Hash_Table_El *element) {
 
   // Resize if needed
   if (table->size[idx] >= table->capacity[idx]) {
-    Hash_Table_El *new = calloc(table->capacity[idx] * 2, sizeof(Hash_Table_El));
+    Hash_Table_El *new = malloc(sizeof(Hash_Table_El) * (table->capacity[idx] * 2));
     if (new == NULL) {
       printf("[ERROR]: "
             "Error in ht_insert_el: "
@@ -216,6 +226,8 @@ int ht_insert_el(Hash_Table *table, Hash_Table_El *element) {
       );
       return -1;
     }
+
+    memset(new, 0, sizeof(Hash_Table_El) * (table->capacity[idx] * 2));
 
     memcpy(new, table->elements[idx], table->size[idx] * sizeof(Hash_Table_El));
     free(table->elements[idx]);
@@ -375,6 +387,38 @@ void *ht_get_el(Hash_Table *table, Hash_Table_El *element) {
   return NULL;
 }
 
+void ht_print(Hash_Table *table, void (*key_print)(void *), void (*val_print)(void *)) {
+  if (table == NULL) {
+    return;
+  }
+
+  for (size_t i = 0; i < table->max_capacity; i++) {
+    for (size_t j = 0; j < table->size[i]; j++) {
+      Hash_Table_El *el = &table->elements[i][j];
+
+      if (key_print == NULL) {
+        printf("%p", el->key);
+      } else {
+        key_print(el->key);
+      }
+
+      printf(" -> ");
+
+      if (val_print == NULL) {
+        printf("%p", el->value);
+      } else {
+        val_print(el->value);
+      }
+
+      printf("\n");
+    }
+  }
+
+  return;
+}
+
+
+// Private functions
 
 size_t ht__hash(const void *key) {
   // One-byte-at-a-time hash based on Murmur's mix
